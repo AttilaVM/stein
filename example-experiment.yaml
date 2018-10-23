@@ -1,4 +1,5 @@
 sectionDir: "sections"
+outputDir: "output"
 windowWidth: 800 # px
 windowHeight: 600 # px
 sectionTransition: 5 # sec

@@ -18,11 +18,12 @@ Section = namedtuple('Section', ['name', "number", "path", "interval"])
 MsgSource = namedtuple('MsgSource', ['path', 'mimeType', 'mimeSubtype', 'basename', 'interval', 'extension'])
 Action = namedtuple('Action', ['msg', 'interval'])
 
-configSchema = { 'sectionDir': {'type': 'string'}
-                 , 'windowWidth': {'type': 'integer'}
-                 ,'windowHeight': {'type': 'integer'}
-                 ,'sectionTransition': {'type': 'integer'}
-                 ,'imageTransition': {'type': 'integer'}
+configSchema = {  'sectionDir': {'type': 'string'}
+                , 'outputDir': {'type': 'string'}
+                , 'windowWidth': {'type': 'integer'}
+                , 'windowHeight': {'type': 'integer'}
+                , 'sectionTransition': {'type': 'integer'}
+                , 'imageTransition': {'type': 'integer'}
 }
 
 def validateConfig(config, configSchema):
@@ -38,6 +39,31 @@ def loadConfig(configPath):
             return yaml.load(stream)
         except yaml.YAMLError as exc:
             print(exc)
+
+
+def createOutputDir(outputDir, experimentName, num):
+    experimentNameEnum = experimentName + "_" + str(num)
+    experimentDirPath = os.path.join(outputDir, experimentNameEnum)
+    try:
+        os.mkdir(outputDir)
+    except OSError as excp:
+        # errno 17 --> file exists
+        if excp.errno == 17:
+            pass
+        else:
+            print(excp)
+            exit(1)
+    try:
+        os.mkdir(experimentDirPath)
+    except OSError as excp:
+        if excp.errno == 17:
+            num += 1
+            experimentDirPath = createOutputDir(outputDir, experimentName, num)
+        else:
+            print(excp)
+            exit(1)
+    return experimentDirPath
+
 
 def validateSectionDirName(sectionDirName):
     """Throw error if name doesn't match regexp pattern"""
@@ -154,8 +180,14 @@ def createActionSequance(config, window, sections):
 
 
 if __name__ == '__main__':
-    config = loadConfig(sys.argv[1])
+    try:
+        config = loadConfig(sys.argv[1])
+        experimentName = sys.argv[2]
+    except IndexError:
+        print("An argument is missing. you should start this app as:\n stein.py config.yml experiment-name")
+        exit(1)
     validateConfig(config, configSchema)
+    experimentDirPath = createOutputDir(config["outputDir"], experimentName, 1)
     sections = readSections(config["sectionDir"])
     validateSections(config, sections)
     window = visual.Window([config["windowWidth"], config["windowHeight"]])
