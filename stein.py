@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from psychopy import visual, core
+from psychopy import visual, core, microphone
 from collections import namedtuple
 import sys
 import os
@@ -179,6 +179,13 @@ def createActionSequance(config, window, sections):
     return actionSequance
 
 
+def recordAudio(experimentDirPath):
+    recordFile = os.path.join(experimentDirPath, "record")
+    microphone.switchOn()
+    mic = microphone.AudioCapture()
+    mic.setFile(recordFile)
+
+
 if __name__ == '__main__':
     try:
         config = loadConfig(sys.argv[1])
@@ -192,9 +199,12 @@ if __name__ == '__main__':
     validateSections(config, sections)
     window = visual.Window([config["windowWidth"], config["windowHeight"]])
     actionSequance = createActionSequance(config, window, sections)
+
+    # recordAudio(experimentDirPath);
     for action in actionSequance:
         print(action)
         action.msg.draw()
         window.flip()
         core.wait(action.interval)
     window.close()
+    core.quit()
