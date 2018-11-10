@@ -181,7 +181,7 @@ def createActionSequance(config, window, sections):
 
 def recordAudio(experimentDirPath):
     recordFile = os.path.join(experimentDirPath, "record")
-    microphone.switchOn()
+    microphone.switchOn(sampleRate=48000)
     mic = microphone.AudioCapture()
     mic.setFile(recordFile)
 
@@ -200,7 +200,7 @@ if __name__ == '__main__':
     window = visual.Window([config["windowWidth"], config["windowHeight"]])
     actionSequance = createActionSequance(config, window, sections)
 
-    # recordAudio(experimentDirPath);
+    recordAudio(experimentDirPath);
     for action in actionSequance:
         print(action)
         action.msg.draw()
