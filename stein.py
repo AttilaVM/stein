@@ -192,11 +192,11 @@ def recordAudio(experimentDirPath, rate, framesPerBuffer, recordTime):
         input=True,
         frames_per_buffer=framesPerBuffer)
 
-    recordSteps=recordTime * framesPerBuffer
-    frames = []
-    for i in range(0, int(rate / framesPerBuffer * recordTime)):
+    recordSteps=int(rate / framesPerBuffer * recordTime)
+    frames = [""] * recordSteps
+    for i in range(0, recordSteps):
         data = stream.read(framesPerBuffer)
-        frames.append(data)
+        frames[i] = data
 
     stream.stop_stream()
     stream.close()
