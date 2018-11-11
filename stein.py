@@ -12,10 +12,10 @@ mime = magic.Magic(mime=True)
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 pprint = pp.pprint
-from pyo import *
-
-#
-pyoSndServer=None
+import pyaudio
+import wave
+import thread
+import time
 
 # Data structures
 Section = namedtuple('Section', ['name', "number", "path", "interval"])
@@ -157,7 +157,7 @@ def createAction(msgSource):
                             actionList.append(
                                 Action(
                                     visual.TextStim(
-                                        window, text=text
+                                        window, text="a"
                                     ),
                                     content["textListProperties"]["interval"]
                                 )
@@ -182,15 +182,35 @@ def createActionSequance(config, window, sections):
                 actionSequance.append(action)
     return actionSequance
 
-def recordAudio(experimentDirPath):
-    recordFile = os.path.join(experimentDirPath, "record")
-    sound.init(buffer=256, rate=48000)
-    print("Audio lib", sound.audioLib)
-    print("pySoundServer", sound.pyoSndServer)
-    microphone.switchOn()
-    mic.record(recordFile)
-    mic = microphone.AudioCapture()
-    return mic
+def recordAudio(experimentDirPath, rate, framesPerBuffer, recordTime):
+    recordFile = os.path.join(experimentDirPath, "record.wav")
+    p = pyaudio.PyAudio()
+    stream = p.open(
+        format=pyaudio.paInt16,
+        channels=2,
+        rate=rate,
+        input=True,
+        frames_per_buffer=framesPerBuffer)
+
+    recordSteps=recordTime * framesPerBuffer
+    frames = []
+    for i in range(0, int(rate / framesPerBuffer * recordTime)):
+        data = stream.read(framesPerBuffer)
+        frames.append(data)
+
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
+
+    wf = wave.open(recordFile, 'wb')
+    wf.setnchannels(2)
+    wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+    wf.setframerate(rate)
+    wf.writeframes(b''.join(frames))
+    wf.close()
+    print("record stop")
+
+
 
 if __name__ == '__main__':
     try:
@@ -204,19 +224,23 @@ if __name__ == '__main__':
     sections = readSections(config["sectionDir"])
     validateSections(config, sections)
     window = visual.Window([config["windowWidth"], config["windowHeight"]])
+
     actionSequance = createActionSequance(config, window, sections)
 
-    pyoSndServer=Server(nchnls=2, duplex=0)
-    # s.setInOutDevice(0)
-    pyoSndServer.boot()
-    pyoSndServer.start()
-    core.wait(10)
-    mic = recordAudio(experimentDirPath);
+    experimentTime= reduce(
+        lambda x, y: x + y.interval,
+        actionSequance,
+        0)
+
+    print("The experiment will take ", experimentTime, " secs, press enter to start!")
+    raw_input()
+    thread.start_new_thread(recordAudio, (experimentDirPath, 44100, 1024, experimentTime + 1,))
     for action in actionSequance:
         print(action)
         action.msg.draw()
         window.flip()
         core.wait(action.interval)
-    mic.stop()
+    # mic.stop()
+    core.wait(3)
     window.close()
     core.quit()
