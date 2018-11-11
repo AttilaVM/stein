@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from psychopy import visual, core, microphone
+from psychopy import visual, core, microphone, sound
 from collections import namedtuple
 import sys
 import os
@@ -12,6 +12,10 @@ mime = magic.Magic(mime=True)
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 pprint = pp.pprint
+from pyo import *
+
+#
+pyoSndServer=None
 
 # Data structures
 Section = namedtuple('Section', ['name', "number", "path", "interval"])
@@ -178,13 +182,15 @@ def createActionSequance(config, window, sections):
                 actionSequance.append(action)
     return actionSequance
 
-
 def recordAudio(experimentDirPath):
     recordFile = os.path.join(experimentDirPath, "record")
-    microphone.switchOn(sampleRate=48000)
+    sound.init(buffer=256, rate=48000)
+    print("Audio lib", sound.audioLib)
+    print("pySoundServer", sound.pyoSndServer)
+    microphone.switchOn()
+    mic.record(recordFile)
     mic = microphone.AudioCapture()
-    mic.setFile(recordFile)
-
+    return mic
 
 if __name__ == '__main__':
     try:
@@ -200,11 +206,17 @@ if __name__ == '__main__':
     window = visual.Window([config["windowWidth"], config["windowHeight"]])
     actionSequance = createActionSequance(config, window, sections)
 
-    recordAudio(experimentDirPath);
+    pyoSndServer=Server(nchnls=2, duplex=0)
+    # s.setInOutDevice(0)
+    pyoSndServer.boot()
+    pyoSndServer.start()
+    core.wait(10)
+    mic = recordAudio(experimentDirPath);
     for action in actionSequance:
         print(action)
         action.msg.draw()
         window.flip()
         core.wait(action.interval)
+    mic.stop()
     window.close()
     core.quit()
